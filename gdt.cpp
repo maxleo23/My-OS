@@ -6,11 +6,16 @@ unusedSegmentSelector(0,0,0),
 codeSegmentSelector(0, 64*1024*1024, 0x9A),
 dataSegmentSelector(0, 64*1024*1024, 0x92)
 {
-    uint32_t i[2];
-    i[0] = (sizeof(GlobalDescriptorTable)-1) << 16; //limit
-    i[1] = (uint32_t)this; //base
+    struct GDTPointer
+    {
+        uint16_t limit;
+        uint32_t base;
+    } __attribute__((packed)) gdtr;
 
-    // asm volatile("lgdt (%0)": :"p" (((uint8_t *) i)+2));
+    gdtr.limit = sizeof(GlobalDescriptorTable) - 1;
+    gdtr.base  = (uint32_t)this;
+
+    asm volatile("lgdt %0" : : "m" (gdtr));
 
     asm volatile(
         "mov $0x18, %%eax\n"
@@ -19,9 +24,7 @@ dataSegmentSelector(0, 64*1024*1024, 0x92)
         "ljmp $0x10, $1f\n"
         "1:\n"
         : : : "eax", "memory");
-
 }
-
 
 GlobalDescriptorTable::~GlobalDescriptorTable()
 {   

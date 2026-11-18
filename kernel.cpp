@@ -10,6 +10,8 @@ void printf(char* str)
     for(int i = 0; str[i] != '\0'; ++i)
     {
         if(str[i] == '\n')  { y++; x = 0; }
+        else if(str[i] == '\b') { if(x > 0) { x--; VideoMemory[80*y+x] = (VideoMemory[80*y+x] & 0xFF00) | ' '; } }
+        else if(str[i] == '\t') { x = (x + 4) & ~3; }
         else {VideoMemory[80*y+x] = (VideoMemory[80*y+x] & 0xFF00) | str[i]; x++;}
 
         if(x >= 80) { y++; x = 0; }

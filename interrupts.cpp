@@ -1,4 +1,5 @@
 #include "interrupts.h"
+#include "keyboard.h"
 
 void printf(char* str);
 
@@ -88,10 +89,19 @@ uint32_t InterruptManager::handleInterrupt(uint8_t interruptNumber, uint32_t esp
 }
 
 uint32_t InterruptManager::DoHandleInterrupt(uint8_t interruptNumber, uint32_t esp)
-{   
-    printf(" INTERRUPT");
+{
+    if(interruptNumber == 0x21)
+        HandleKeyboardInterrupt();
 
-    if(hardware)
-    
+    // 0x20 = timer (fires ~18x/sec): don't print for it, just acknowledge.
+
+    // Hardware IRQs (0x20-0x2F) must be acknowledged with an EOI
+    if(0x20 <= interruptNumber && interruptNumber < 0x30)
+    {
+        picMasterCommand.Write(0x20);
+        if(interruptNumber >= 0x28)
+            picSlaveCommand.Write(0x20);
+    }
+
     return esp;
 }
