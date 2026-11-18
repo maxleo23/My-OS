@@ -74,8 +74,8 @@ InterruptManager::InterruptManager(GlobalDescriptorTable* gdt)
     picMasterData.Write(0x01);
     picSlaveData.Write(0x01);
 
-    picMasterData.Write(0x00);
-    picSlaveData.Write(0x00);
+    picMasterData.Write(0xF8);   // was 0x00: allow IRQ0, IRQ1, IRQ2 (cascade)
+    picSlaveData.Write(0xEF);    // was 0x00: allow IRQ12 only  
 
     InterruptsDescriptorTablePointer idt;
     idt.size = 256 * sizeof(GateDescriptor) -1; 

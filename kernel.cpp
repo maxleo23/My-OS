@@ -59,7 +59,6 @@ extern "C" void kernelMain(const void* multiboot_structure, uint32_t /*multiboot
     KeyboardDriver keyboard(&interrupts);
     MouseDriver mouse(&interrupts);
 
-    mouse.Activate();          // switch the mouse on
     interrupts.Activate();     // now allow interrupts to happen
 
     while(1);
