@@ -1,6 +1,8 @@
 #include "types.h"
 #include "gdt.h"
 #include "interrupts.h"
+#include "keyboard.h"
+#include "mouse.h"
 
 void printf(char* str)
 {
@@ -52,9 +54,13 @@ extern "C" void kernelMain(const void* multiboot_structure, uint32_t /*multiboot
     GlobalDescriptorTable gdt;
     InterruptManager interrupts(&gdt);
 
+    // Create the drivers. Each one registers itself with the
+    // InterruptManager for its own interrupt number.
+    KeyboardDriver keyboard(&interrupts);
+    MouseDriver mouse(&interrupts);
 
-
-    interrupts.Activate();
+    mouse.Activate();          // switch the mouse on
+    interrupts.Activate();     // now allow interrupts to happen
 
     while(1);
 }

@@ -2,9 +2,24 @@
 #define __KEYBOARD_H
 
 #include "types.h"
+#include "interrupts.h"
+#include "port.h"
 
-// Called from the IRQ1 handler. Reads port 0x60, decodes the scancode
-// and prints the character on screen.
-void HandleKeyboardInterrupt();
+// Keyboard driver. It is an InterruptHandler for interrupt 0x21 (IRQ1),
+// so HandleInterrupt() runs every time a key is pressed or released.
+class KeyboardDriver : public InterruptHandler
+{
+    Port8Bit dataport;      // port 0x60: the scancode arrives here
+    Port8Bit commandport;   // port 0x64: status / commands
+
+    bool shiftHeld;         // is Shift being held down?
+    bool capsLock;          // is Caps Lock switched on?
+    bool extended;          // did we just see the 0xE0 prefix?
+
+public:
+    KeyboardDriver(InterruptManager* manager);
+    ~KeyboardDriver();
+    virtual uint32_t HandleInterrupt(uint32_t esp);
+};
 
 #endif

@@ -5,10 +5,37 @@
 #include "port.h"
 #include "gdt.h"
 
-class InterruptManager
+class InterruptManager;
+
+// ---------------------------------------------------------------------------
+// InterruptHandler: the "parent" of every driver.
+// A driver (keyboard, mouse, ...) inherits from this class, tells it which
+// interrupt number it cares about, and overrides HandleInterrupt().
+// When that interrupt happens, the InterruptManager calls HandleInterrupt().
+// ---------------------------------------------------------------------------
+class InterruptHandler
 {
     protected:
+        uint8_t interruptNumber;
+        InterruptManager* interruptManager;
+
+        InterruptHandler(uint8_t interruptNumber, InterruptManager* interruptManager);
+        ~InterruptHandler();
+
+    public:
+        virtual uint32_t HandleInterrupt(uint32_t esp);
+};
+
+
+class InterruptManager
+{
+    friend class InterruptHandler;
+
+    protected:
         static InterruptManager* ActiveInterruptManager;
+
+        // One slot per interrupt number. A driver puts itself in its slot.
+        InterruptHandler* handlers[256];
 
         struct GateDescriptor
         {
@@ -52,9 +79,9 @@ class InterruptManager
         uint32_t DoHandleInterrupt(uint8_t interruptNumber, uint32_t esp);
 
         static void IgnoreInterruptRequest();
-        static void HandleInterruptRequest0x00();
-        static void HandleInterruptRequest0x01();
-
+        static void HandleInterruptRequest0x00();   // timer
+        static void HandleInterruptRequest0x01();   // keyboard
+        static void HandleInterruptRequest0x0C();   // mouse
 };
 
 
