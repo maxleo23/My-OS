@@ -1,6 +1,27 @@
 #include "keyboard.h"
 
-void printf(char* str);
+KeyboardEventHandler::KeyboardEventHandler()
+{
+}
+
+void KeyboardEventHandler::OnKeyDown(char)
+{
+}
+
+void KeyboardEventHandler::OnKeyUp(char)
+{
+}
+
+void KeyboardDriver::Activate()
+{
+    while(commandport.Read() & 0x1)
+        dataport.Read();
+    commandport.Write(0xAE);   // activate interrupts
+    commandport.Write(0x20);   // command 0x20 = read controller command byte
+    uint8_t status = (dataport.Read() | 1) & ~0x10;  // set bit 0 to enable interrupts, clear bit 4
+    commandport.Write(0x60);   // command 0x60 = set controller command byte
+    dataport.Write(status);
+}
 
 // Two lookup tables: "scancode number -> character".
 // The keyboard does not send letters, it sends numbers (scancodes).
@@ -35,7 +56,7 @@ static_assert(sizeof(normalMap) == 0x3A + 1, "normalMap must cover 0x00-0x39");
 static_assert(sizeof(shiftMap)  == 0x3A + 1, "shiftMap must cover 0x00-0x39");
 
 
-KeyboardDriver::KeyboardDriver(InterruptManager* manager)
+KeyboardDriver::KeyboardDriver(InterruptManager* manager, KeyboardEventHandler* handler)
 : InterruptHandler(0x21, manager),   // "call me for interrupt 0x21"
   dataport(0x60),
   commandport(0x64)
@@ -43,6 +64,7 @@ KeyboardDriver::KeyboardDriver(InterruptManager* manager)
     shiftHeld = false;
     capsLock  = false;
     extended  = false;
+    this->handler = handler;
 
     // Throw away any old bytes already waiting in the keyboard buffer.
     while(commandport.Read() & 0x01)
@@ -84,11 +106,10 @@ uint32_t KeyboardDriver::HandleInterrupt(uint32_t esp)
         return esp;
     }
 
-    // Step 6: we only print when a key is pressed (not released),
-    // and only for keys our tables know about.
-    if(released || key > 0x39)
+    // Step 6: only keys our tables know about.
+    if(key > 0x39)
         return esp;
-
+    
     // Step 7: look up the character (use the shift table if Shift is held).
     char c = shiftHeld ? shiftMap[key] : normalMap[key];
 
@@ -99,11 +120,11 @@ uint32_t KeyboardDriver::HandleInterrupt(uint32_t esp)
         else if(c >= 'A' && c <= 'Z') c += 32;   // make lowercase
     }
 
-    // Step 9: print it (skip keys with no character).
-    if(c != 0)
+    // Step 9: hand the key to whoever is listening.
+    if(c != 0 && handler != 0)
     {
-        char text[2] = { c, '\0' };
-        printf(text);
+        if(released) handler->OnKeyUp(c);
+        else         handler->OnKeyDown(c);
     }
 
     return esp;
